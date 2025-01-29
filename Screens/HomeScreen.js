@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, TextInput, FlatList, Text, StyleSheet } from 'react-native';
 
-const HomeScreen = () => {
+const HomeScreen = ({ navigation }) => {
   const [searchTerm, setSearchTerm] = useState('');
 
   const topRecipes = [
@@ -33,9 +33,12 @@ const HomeScreen = () => {
         data={topRecipes}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <View style={styles.recipeCard}>
-            <Text style={styles.recipeTitle}>{item.title}</Text>
-          </View>
+          <Text
+            style={styles.recipeCard}
+            onPress={() => navigation.navigate('Details', { recipe: item })}
+          >
+            {item.title}
+          </Text>
         )}
       />
 
@@ -45,9 +48,12 @@ const HomeScreen = () => {
         data={suggestedRecipes}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <View style={styles.recipeCard}>
-            <Text style={styles.recipeTitle}>{item.title}</Text>
-          </View>
+          <Text
+            style={styles.recipeCard}
+            onPress={() => navigation.navigate('Details', { recipe: item })}
+          >
+            {item.title}
+          </Text>
         )}
       />
     </View>
@@ -76,9 +82,8 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: '#f9f9f9',
     borderRadius: 8,
+    marginBottom: 8,
     marginRight: 8,
-  },
-  recipeTitle: {
     fontSize: 16,
     fontWeight: 'bold',
   },
