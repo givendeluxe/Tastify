@@ -6,21 +6,29 @@ const DetailsScreen = ({ route }) => {
 
   return (
     <ScrollView style={styles.container}>
-      {/* Recipe Image (Placeholder for now) */}
-      <Image source={{ uri: 'https://via.placeholder.com/300' }} style={styles.image} />
+      {/* Recipe Image */}
+      <Image source={{ uri: recipe.strMealThumb }} style={styles.image} />
 
       {/* Recipe Name */}
-      <Text style={styles.title}>{recipe.title}</Text>
+      <Text style={styles.title}>{recipe.strMeal}</Text>
 
-      {/* Ingredients (Placeholder) */}
+      {/* Ingredients */}
       <Text style={styles.sectionTitle}>Ingredients</Text>
-      <Text>- Ingredient 1</Text>
-      <Text>- Ingredient 2</Text>
-      <Text>- Ingredient 3</Text>
+      {Array.from({ length: 20 }, (_, i) => i + 1)
+        .map((num) => ({
+          ingredient: recipe[`strIngredient${num}`],
+          measure: recipe[`strMeasure${num}`],
+        }))
+        .filter((item) => item.ingredient)
+        .map((item, index) => (
+          <Text key={index}>
+            {item.measure} {item.ingredient}
+          </Text>
+        ))}
 
-      {/* Instructions (Placeholder) */}
+      {/* Instructions */}
       <Text style={styles.sectionTitle}>Instructions</Text>
-      <Text>Lorem ipsum dolor sit amet, consectetur adipiscing elit...</Text>
+      <Text>{recipe.strInstructions}</Text>
     </ScrollView>
   );
 };
