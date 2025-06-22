@@ -1,96 +1,76 @@
 import React, { useState, useEffect } from 'react';
-import { View, TextInput, FlatList, Text, Image, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, Text } from 'react-native';
+import Logo from '../Components/Logo';
+import SearchBar from '../Components/SearchBar';
+import RecommendedSection from '../Components/RecommendedSection';
+import FoodTypesSection from '../Components/FoodTypesSection'; // Import FoodTypesSection
 
 const HomeScreen = ({ navigation }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [topRecipes, setTopRecipes] = useState([]);
-  const [suggestedRecipes, setSuggestedRecipes] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    const fetchRecipes = async () => {
-      try {
-        // Fetch Top Recipes (Chicken-based)
-        const topResponse = await fetch('https://www.themealdb.com/api/json/v1/1/search.php?s=chicken');
-        const topData = await topResponse.json();
-        setTopRecipes(topData.meals || []);
-
-        // Fetch Suggested Recipes (Beef-based)
-        const suggestedResponse = await fetch('https://www.themealdb.com/api/json/v1/1/search.php?s=beef');
-        const suggestedData = await suggestedResponse.json();
-        setSuggestedRecipes(suggestedData.meals || []);
-      } catch (error) {
-        console.error('Error fetching recipes:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchRecipes();
+    fetchTopRecipes();
   }, []);
 
-  // Renders top recipes (with images and truncated text)
-  const renderTopRecipeItem = ({ item }) => (
-    <TouchableOpacity
-      style={styles.topRecipeCard}
-      onPress={() => navigation.navigate('Details', { recipe: item })}
-    >
-      <Image source={{ uri: item.strMealThumb }} style={styles.topRecipeImage} />
-      <Text style={styles.topRecipeTitle} numberOfLines={1}>
-        {item.strMeal}
-      </Text>
-    </TouchableOpacity>
-  );
+  const fetchTopRecipes = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const response = await fetch(
+        'https://www.themealdb.com/api/json/v1/1/search.php?s=chicken'
+      );
+      const data = await response.json();
+      setTopRecipes(data.meals || []);
+    } catch (err) {
+      console.error('Error fetching top recipes:', err);
+      setError('Failed to load recipes. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  // Renders suggested recipes (with distinct clickable tiles)
-  const renderSuggestedRecipeItem = ({ item }) => (
-    <TouchableOpacity
-      style={styles.suggestedRecipeCard}
-      onPress={() => navigation.navigate('Details', { recipe: item })}
-    >
-      <Text style={styles.suggestedRecipeText}>{item.strMeal}</Text>
-    </TouchableOpacity>
-  );
+  const handleSearch = () => {
+    console.log('Search Term:', searchTerm);
+  };
 
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0000ff" />
-      </View>
-    );
-  }
+  const handleViewAll = () => {
+    const simplifiedRecipes = topRecipes.map(({ idMeal, strMeal, strMealThumb }) => ({
+      idMeal,
+      strMeal,
+      strMealThumb,
+    }));
+
+    navigation.navigate('ViewAll', { recipes: simplifiedRecipes });
+  };
 
   return (
     <View style={styles.container}>
-      {/* "Tastify" Title */}
-      <Text style={styles.appTitle}>Tastify</Text>
-
-      {/* Search Bar */}
-      <TextInput
-        style={styles.searchInput}
-        placeholder="Search for recipes..."
-        value={searchTerm}
-        onChangeText={setSearchTerm}
+      <Logo />
+      <SearchBar
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        onSubmitSearch={handleSearch}
       />
-
-      {/* Top Recipes Section */}
-      <Text style={styles.sectionTitle}>Top Recipes</Text>
-      <FlatList
-        horizontal
-        data={topRecipes}
-        keyExtractor={(item) => item.idMeal}
-        renderItem={renderTopRecipeItem}
-        showsHorizontalScrollIndicator={false}
-      />
-
-      {/* Suggested Recipes Section */}
-      <Text style={styles.sectionTitle}>Suggested Recipes</Text>
-      <FlatList
-        data={suggestedRecipes}
-        keyExtractor={(item) => item.idMeal}
-        renderItem={renderSuggestedRecipeItem}
-        showsVerticalScrollIndicator={false}
-      />
+      {/* Recommended Section */}
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#0000ff" />
+        </View>
+      ) : error ? (
+        <Text style={styles.errorText}>{error}</Text>
+      ) : (
+        <RecommendedSection
+          recipes={topRecipes}
+          onSelectRecipe={(recipe) => navigation.navigate('Details', { recipe })}
+          onViewAll={handleViewAll}
+        />
+      )}
+      
+      {/* Food Type Tabs Section (Pass Navigation Prop) */}
+      <FoodTypesSection navigation={navigation} />
     </View>
   );
 };
@@ -101,54 +81,16 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: '#fff',
   },
-  appTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  searchInput: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    padding: 8,
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginVertical: 16,
-  },
-  topRecipeCard: {
-    alignItems: 'center',
-    marginRight: 12,
-    width: 120, // Adjust for larger thumbnails
-  },
-  topRecipeImage: {
-    width: 120,
-    height: 120, // Ensures 1:1 ratio
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  topRecipeTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  suggestedRecipeCard: {
-    backgroundColor: '#f3f3f3',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  suggestedRecipeText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  errorText: {
+    color: 'red',
+    textAlign: 'center',
+    marginTop: 16,
+    fontSize: 16,
   },
 });
 
