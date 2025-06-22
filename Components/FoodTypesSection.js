@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, FlatList, Text, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons';
+import RecipeAPI from '../services/RecipeAPI';
 
 const FoodTypesSection = ({ navigation }) => {
   const [selectedType, setSelectedType] = useState('Italian'); // Default selected category
@@ -15,11 +17,11 @@ const FoodTypesSection = ({ navigation }) => {
     setLoading(true);
     setSelectedType(type);
     try {
-      const response = await fetch(`https://www.themealdb.com/api/json/v1/1/filter.php?a=${type}`);
-      const data = await response.json();
+      const data = await RecipeAPI.getRecipesByCategory(type);
       setRecipes(data.meals || []);
     } catch (err) {
       console.error('Error fetching recipes:', err);
+      setRecipes([]);
     } finally {
       setLoading(false);
     }
@@ -37,15 +39,33 @@ const FoodTypesSection = ({ navigation }) => {
   const renderRecipe = ({ item }) => (
     <TouchableOpacity
       style={styles.recipeCard}
-      onPress={() => navigation.navigate('Details', { recipe: item })} // Navigate on click
+      onPress={() => navigation.navigate('Details', { recipe: item })}
     >
-      <Image source={{ uri: item.strMealThumb }} style={styles.recipeImage} />
-      <Text style={styles.recipeTitle} numberOfLines={1}>{item.strMeal}</Text>
+      <View style={styles.recipeImageContainer}>
+        <Image source={{ uri: item.strMealThumb }} style={styles.recipeImage} />
+        {item.cookingTime && (
+          <View style={styles.timeContainer}>
+            <Icon name="time-outline" size={12} color="#fff" />
+            <Text style={styles.timeText}>{item.cookingTime}</Text>
+          </View>
+        )}
+      </View>
+      <View style={styles.recipeContent}>
+        <Text style={styles.recipeTitle} numberOfLines={2}>{item.strMeal}</Text>
+        {item.strCategory && (
+          <Text style={styles.recipeCategory}>{item.strCategory}</Text>
+        )}
+      </View>
     </TouchableOpacity>
   );
 
   return (
     <View style={styles.container}>
+      {/* Section Header */}
+      <View style={styles.header}>
+        <Text style={styles.sectionTitle}>Categories</Text>
+      </View>
+
       {/* Food Type Tabs */}
       <FlatList
         horizontal
@@ -54,21 +74,30 @@ const FoodTypesSection = ({ navigation }) => {
         renderItem={renderTab}
         showsHorizontalScrollIndicator={false}
         style={styles.tabsContainer}
+        contentContainerStyle={styles.tabsContent}
       />
 
       {/* Recipes Section */}
       {loading ? (
-        <ActivityIndicator size="large" color="tomato" style={styles.loader} />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#ff6347" />
+          <Text style={styles.loadingText}>Loading {selectedType} recipes...</Text>
+        </View>
       ) : recipes.length > 0 ? (
         <FlatList
           horizontal
           data={recipes}
           keyExtractor={(item) => item.idMeal}
           renderItem={renderRecipe}
+          showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.recipesContainer}
         />
       ) : (
-        <Text style={styles.noDataText}>No recipes found for {selectedType}</Text>
+        <View style={styles.emptyContainer}>
+          <Icon name="restaurant-outline" size={48} color="#ccc" />
+          <Text style={styles.noDataText}>No {selectedType} recipes found</Text>
+          <Text style={styles.noDataSubtext}>Try selecting a different category</Text>
+        </View>
       )}
     </View>
   );
@@ -76,61 +105,126 @@ const FoodTypesSection = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 16,
+    marginBottom: 32,
   },
-  tabsContainer: {
+  header: {
     marginBottom: 16,
   },
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#2c2c2c',
+  },
+  tabsContainer: {
+    marginBottom: 20,
+  },
+  tabsContent: {
+    paddingLeft: 4,
+  },
   tab: {
-    backgroundColor: '#f3f3f3',
-    borderRadius: 20,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    marginRight: 8,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 25,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
   },
   selectedTab: {
-    backgroundColor: 'tomato',
+    backgroundColor: '#ff6347',
+    borderColor: '#ff6347',
   },
   tabText: {
     fontSize: 14,
-    color: '#555',
+    color: '#666',
+    fontWeight: '500',
   },
   selectedTabText: {
     color: '#fff',
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
-  loader: {
-    marginTop: 16,
+  loadingContainer: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#666',
   },
   recipesContainer: {
-    paddingHorizontal: 8,
-    paddingBottom: 16,
+    paddingLeft: 4,
   },
   recipeCard: {
-    marginHorizontal: 8,
+    marginRight: 16,
     backgroundColor: '#fff',
-    borderRadius: 8,
+    borderRadius: 16,
     overflow: 'hidden',
-    width: 150, // Adjusted width for 3:4 ratio
-    height: 200, // Adjusted height for 3:4 ratio
+    width: 140,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
     elevation: 3,
   },
+  recipeImageContainer: {
+    position: 'relative',
+  },
   recipeImage: {
-    width: '100%',
-    height: '75%', // Maintain aspect ratio
+    width: 140,
+    height: 120,
+  },
+  timeContainer: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  timeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '500',
+    marginLeft: 3,
+  },
+  recipeContent: {
+    padding: 12,
   },
   recipeTitle: {
     fontSize: 14,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginTop: 8,
-    paddingHorizontal: 5,
+    fontWeight: '600',
+    color: '#2c2c2c',
+    marginBottom: 4,
+    lineHeight: 18,
+  },
+  recipeCategory: {
+    fontSize: 12,
+    color: '#999',
+    fontWeight: '500',
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    paddingVertical: 40,
   },
   noDataText: {
     textAlign: 'center',
     fontSize: 16,
-    color: '#aaa',
-    marginTop: 16,
+    color: '#666',
+    marginTop: 12,
+    fontWeight: '500',
+  },
+  noDataSubtext: {
+    textAlign: 'center',
+    fontSize: 14,
+    color: '#999',
+    marginTop: 4,
   },
 });
 
